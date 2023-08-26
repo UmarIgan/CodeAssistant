@@ -1,0 +1,7 @@
+streamlit
+accelerate
+bitsandbytes
+protobuf
+scipy
+sentencepiece
+torch
