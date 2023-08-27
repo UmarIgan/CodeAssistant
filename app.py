@@ -7,12 +7,14 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, TextIt
 
 
 model_id = 'codellama/CodeLlama-7b-Instruct-hf'
+cache_dir='model'
 
 if torch.cuda.is_available():
-    config = AutoConfig.from_pretrained(model_id)
+    config = AutoConfig.from_pretrained(model_id,cache_dir=cache_dir)
     config.pretraining_tp = 1
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
+        cache_dir=cache_dir,
         config=config,
         torch_dtype=torch.float16,
         load_in_4bit=True,
@@ -21,11 +23,17 @@ if torch.cuda.is_available():
     )
 else:
     model = None
-tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer = AutoTokenizer.from_pretrained(model_id,cache_dir=cache_dir)
 
 
 DEFAULT_SYSTEM_PROMPT = """\
-You are a helpful, respectful and honest assistant with a deep knowledge of code and software design. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\
+You are a helpful, respectful and honest assistant with a deep knowledge of code and software design.
+Always answer as helpfully as possible, while being safe. Your answers should not include any harmful,
+unethical, racist, sexist, toxic, dangerous, or illegal content.
+Please ensure that your responses are socially unbiased and positive in nature.
+\n\nIf a question does not make any sense, or is not factually coherent,
+explain why instead of answering something not correct.
+If you don't know the answer to a question, please don't share false information.\
 """
 MAX_MAX_NEW_TOKENS = 4096
 DEFAULT_MAX_NEW_TOKENS = 1024
@@ -69,13 +77,12 @@ def run(message: str,
     generate_kwargs = dict(
         inputs,
         streamer=streamer,
-        max_new_tokens=max_new_tokens,
         do_sample=True,
-        top_p=top_p,
-        top_k=top_k,
-        temperature=temperature,
-        num_beams=1,
-    )
+        max_new_tokens = 1024,
+        temperature = 0.1,
+        top_p = 0.9,
+        top_k = 50,
+        num_beams=1)
     t = Thread(target=model.generate, kwargs=generate_kwargs)
     t.start()
 
@@ -85,24 +92,33 @@ def run(message: str,
         yield ''.join(outputs)
 
 def main():
-    st.title("Code Llama 13B Chat")
+    st.title("Code Llama 7B Chat on Colab GPU by Umar IGAN")
     st.markdown("""
-    This Space demonstrates model [CodeLlama-13b-Instruct](https://huggingface.co/codellama/CodeLlama-13b-Instruct-hf) by Meta, a Code Llama model with 13B parameters fine-tuned for chat instructions and specialized on code tasks.
+    This Space demonstrates model [CodeLlama-7b-Instruct](https://huggingface.co/codellama/CodeLlama-7b-Instruct-hf) by Meta, a Code Llama model with 7B parameters fine-tuned for chat instructions and specialized on code tasks.
+    I build this on colab in a way to use your colab gpu on this interface.
     """)
 
     message = st.text_area("Type a message...")
     system_prompt = st.text_area("System prompt", value=DEFAULT_SYSTEM_PROMPT)
-    max_new_tokens = st.slider("Max new tokens", min_value=1, max_value=4096, value=1024)
-    temperature = st.slider("Temperature", min_value=0.1, max_value=4.0, value=0.1, step=0.1)
-    top_p = st.slider("Top-p (nucleus sampling)", min_value=0.05, max_value=1.0, value=0.9, step=0.05)
-    top_k = st.slider("Top-k", min_value=1, max_value=1000, value=50)
 
     if st.button("Submit"):
         history = []
+        input_token_length = get_input_token_length(message, history, system_prompt)
+        if input_token_length > MAX_INPUT_TOKEN_LENGTH:
+            st.error(f'The accumulated input is too long ({input_token_length} > {MAX_INPUT_TOKEN_LENGTH}). Clear your chat history and try again.')
+            return
+
+        output_elem = st.empty()  # Create an empty element for dynamic text update
+
+        def update_output(response):
+            history.append((message, response))
+            output_elem.text(response)  # Update the element's content with the response
+
         generator = run(message, history, system_prompt, max_new_tokens, temperature, top_p, top_k)
         for response in generator:
-            history.append((message, response))
-            st.write(response)
+            #st.write(response)  # Display response in the sidebar as well
+            update_output(response)  # Update the dynamic text element with the response
+
 
     if st.button("Clear"):
         st.text_area("Type a message...", value="")
