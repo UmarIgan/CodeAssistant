@@ -10,20 +10,7 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, TextIt
 model_id = 'codellama/CodeLlama-7b-Instruct-hf'
 cache_dir='model'
 
-if torch.cuda.is_available():
-    config = AutoConfig.from_pretrained(model_id,cache_dir=cache_dir)
-    config.pretraining_tp = 1
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        cache_dir=cache_dir,
-        config=config,
-        torch_dtype=torch.float16,
-        load_in_4bit=True,
-        device_map='auto',
-        use_safetensors=False,
-    )
-else:
-    model = None
+model = None
 tokenizer = AutoTokenizer.from_pretrained(model_id,cache_dir=cache_dir)
 
 
