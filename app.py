@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 from threading import Thread
 from typing import Iterator
@@ -91,46 +92,41 @@ def run(message: str,
         outputs.append(text)
         yield ''.join(outputs)
 
-def main():
-    st.title("Code Llama 7B Chat on Colab GPU by Umar IGAN")
-    st.markdown("""
+st.title("Code Llama 7B Chat on Colab GPU by Umar IGAN")
+st.markdown("""
     This Space demonstrates model [CodeLlama-7b-Instruct](https://huggingface.co/codellama/CodeLlama-7b-Instruct-hf) by Meta, a Code Llama model with 7B parameters fine-tuned for chat instructions and specialized on code tasks.
     I build this on colab in a way to use your colab gpu on this interface.
     """)
 
-    message = st.text_area("Type a message...")
-    system_prompt = st.text_area("System prompt", value=DEFAULT_SYSTEM_PROMPT)
-    max_new_tokens = 1024,
-    temperature = 0.1,
-    top_p = 0.9,
-    top_k = 50,
+message = st.text_area("Type a message...")
+system_prompt = st.text_area("System prompt", value=DEFAULT_SYSTEM_PROMPT)
+max_new_tokens = 1024,
+temperature = 0.1,
+top_p = 0.9,
+top_k = 50,
 
 
-    if st.button("Submit"):
-        history = []
-        input_token_length = get_input_token_length(message, history, system_prompt)
-        if input_token_length > MAX_INPUT_TOKEN_LENGTH:
-            st.error(f'The accumulated input is too long ({input_token_length} > {MAX_INPUT_TOKEN_LENGTH}). Clear your chat history and try again.')
+if st.button("Submit"):
+    history = []
+    input_token_length = get_input_token_length(message, history, system_prompt)
+    if input_token_length > MAX_INPUT_TOKEN_LENGTH:
+        st.error(f'The accumulated input is too long ({input_token_length} > {MAX_INPUT_TOKEN_LENGTH}). Clear your chat history and try again.')
             return
 
         
-        output_elem = st.empty()  # Create an empty element for dynamic text update
+    output_elem = st.empty()  # Create an empty element for dynamic text update
+    def update_output(response):
+        history.append((message, response))
+        output_elem.text(response)  # Update the element's content with the response
 
-        def update_output(response):
-            history.append((message, response))
-            output_elem.text(response)  # Update the element's content with the response
-
-        generator = run(message, history, system_prompt, max_new_tokens, temperature, top_p, top_k)
-        for response in generator:
-            #st.write(response)  # Display response in the sidebar as well
-            update_output(response)  # Update the dynamic text element with the response
+    generator = run(message, history, system_prompt, max_new_tokens, temperature, top_p, top_k)
+    for response in generator:
+        #st.write(response)  # Display response in the sidebar as well
+        update_output(response)  # Update the dynamic text element with the response
 
 
-    if st.button("Clear"):
-        st.text_area("Type a message...", value="")
+if st.button("Clear"):
+    st.text_area("Type a message...", value="")
 
-    if st.button("Retry"):
-        pass  # Implement the retry logic here
-
-if __name__ == "__main__":
-    main()
+if st.button("Retry"):
+    pass  # Implement the retry logic here
