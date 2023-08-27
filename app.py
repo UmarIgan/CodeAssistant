@@ -100,6 +100,11 @@ def main():
 
     message = st.text_area("Type a message...")
     system_prompt = st.text_area("System prompt", value=DEFAULT_SYSTEM_PROMPT)
+    max_new_tokens = 1024,
+    temperature = 0.1,
+    top_p = 0.9,
+    top_k = 50,
+
 
     if st.button("Submit"):
         history = []
@@ -108,6 +113,7 @@ def main():
             st.error(f'The accumulated input is too long ({input_token_length} > {MAX_INPUT_TOKEN_LENGTH}). Clear your chat history and try again.')
             return
 
+        
         output_elem = st.empty()  # Create an empty element for dynamic text update
 
         def update_output(response):
