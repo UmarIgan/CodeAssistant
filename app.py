@@ -1,4 +1,3 @@
-%%writefile app.py
 import streamlit as st
 from threading import Thread
 from typing import Iterator
